@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+        .quizz-app{
+            margin-top: 20px;
+            border: solid 1px black;
+        }
+        .info-panel{
+            border-bottom: solid 1px black;
+            padding: 10px;
+        }
+        .game{
+            padding: 40px;
+        }
+        .drag-success{
+            background: #F8BBD0;
+        }
+        .drop-success{
+            background: #E1BEE7;
+        }
+        ul{
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        li{
+            border: solid 1px black;
+            padding: 5px 50px;
+            text-transform: uppercase;
+        }
+        li:not(:last-child){
+            margin-bottom: 10px;
+        }
+        .ui-widget-header,.ui-state-default, ui-button{
+            background:#b9cd6d;
+            border: 1px solid #b9cd6d;
+            color: #FFFFFF;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="quizz-app clearfix">
+        <div class="info-panel">
+            <a href="#" class="reset">Reset</a>
+            <p>Score: <span>0</span></p>
+        </div>
+        <div class="game clearfix">
+            <div class="left pull-left">
+                <ul class="country-list">
+                </ul>
+            </div>
+            <div class="right pull-right">
+                <ul class="capital-list">
+                </ul>
+            </div>
+        </div>
+        <div class="dialog" title="NOTE">
+            <p>You Win</p>
+        </div>
+    </div>
+</div>
+</body>
+<script src="https://code.jquery.com/jquery-1.12.4.js"></script>
+<script src="https://code.jquery.com/ui/1.12.0/jquery-ui.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.15.0/lodash.min.js"></script>
+<script>
+    /**
+     * learn how to drag and drop with jquery ui -> done
+     * add animation to drag and drop action -> later
+     */
+    $(document).ready(function() {
+        /**
+         * make country item draggable -> ok
+         * revert item -> ok
+         * config draggable just inside quizz-app class -> ok
+         * add custom class when dragging -> ok
+         * animate revert action -> wait
+         * make capital item droppable -> ok
+         * when contry-list put on capital-list = color:orange -> ok
+         * just accept drag and drop with same data-index -> ok
+         * increase score when drag success -> ok
+         * disable drag success (not allow drag again) -> ok
+         * add special class for drag and drop success item -> ok
+         * check if game end -> ok
+         * show modal when game complete -> ok (will css later)
+         * show dialog after revert action complete
+         * dinamic create country, capital list -> ok
+         * shuffle list country, capital before add -> ok
+         * css for dialog -> wait
+         * find country list, capital list -> ok
+         * reset game when click reset button -> ok
+         * reflactor to OOP -> ok
+         */
+
+        function QuizzApp($quizzApp) {
+            this.$score = $quizzApp.find('.info-panel span');
+            this.totalItem;
+            this.$dialog = $quizzApp.find('.dialog');
+            this.$countryList = $quizzApp.find('.country-list');
+            this.$capitalList = $quizzApp.find('.capital-list');
+            this.$reset = $quizzApp.find('.reset');
+            this.countries = ['Viet Nam', 'USA', 'JAPAN', 'Sudan', 'Greece', 'India'];
+            this.capitals = ['Ha Noi', 'NEW YORK', 'TOKYO', 'Khartoum', 'Athens', 'New Delhi'];
+            this.createLayout();
+            this.addEvent();
+        }
+
+        QuizzApp.prototype = {
+            constructor: QuizzApp,
+            createCountryElement: function (countryName, countryIndex) {
+                return '<li data-index="' + countryIndex + '">' + countryName + '</li>';
+            },
+            createCapitalElement: function (capitalName, capitalIndex) {
+                return '<li data-index="' + capitalIndex + '">' + capitalName + '</li>';
+            },
+            createLayout: function () {
+                var countryElements = _.map(this.countries, this.createCountryElement);
+                var capitalElements = _.map(this.capitals, this.createCapitalElement);
+                countryElements = _.shuffle(countryElements);
+                capitalElements = _.shuffle(capitalElements);
+                this.$countryList.empty().html(countryElements);
+                this.$capitalList.empty().html(capitalElements);
+                this.totalItem = _.size(countryElements);
+            },
+            addEvent: function () {
+                var self = this;
+                self.$dialog.dialog({
+                    autoOpen: false
+                });
+
+                var $countryListItem = self.$countryList.find('li');
+                var $capitalListItem = self.$capitalList.find('li');
+                self.$reset.on('click', function () {
+                    $capitalListItem.removeClass('drop-success').droppable("option", "disabled", false);
+                    $countryListItem.removeClass('drag-success').draggable("option", "disabled", false);
+                    self.$score.text(0);
+                });
+                $countryListItem.draggable({
+                    revert: true,
+                    revertDuration: 200,
+                    containment: '.quizz-app',
+                    cursor: 'move'
+                });
+                $capitalListItem.droppable({
+                    accept: function ($dragItem) {
+                        var dragIndex = $dragItem.data('index');
+                        var dropIndex = $(this).data('index');
+                        return dragIndex === dropIndex;
+                    },
+                    drop: function (event, ui) {
+                        /**
+                         * ui.draggable = target drag item
+                         * this = target drop item
+                         */
+                        var currentScore = parseInt(self.$score.text());
+                        var $dragItem = ui.draggable;
+                        self.$score.text(currentScore + 1);
+                        $(this).addClass('drop-success').droppable('disable');
+                        $dragItem.addClass('drag-success').draggable('disable');
+
+                        /**
+                         * Check if user win or not
+                         */
+                        var count = _.size($capitalListItem.filter('.drop-success'));
+                        if (count === self.totalItem) {
+                            self.$dialog.dialog('open');
+                        }
+                    }
+                });
+            }
+        };
+
+        new QuizzApp($('.quizz-app'));
+
+    });
+</script>
+</html>
